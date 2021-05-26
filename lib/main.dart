@@ -11,7 +11,7 @@ class ByteBankApp extends StatelessWidget {
       return
          MaterialApp(
             home: Scaffold(
-               body: TransferForm(),
+               body: TransfersList(),
             )
          );
   }
@@ -47,9 +47,15 @@ class Field extends StatelessWidget {
 	}
 }
 
-class TransferForm extends StatelessWidget {
+class TransferForm extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+	  return TransferFormState();
+  }
+}
 
-   final TextEditingController _accountController = TextEditingController();
+class TransferFormState extends State<TransferForm> {
+	final TextEditingController _accountController = TextEditingController();
    final TextEditingController _valueController = TextEditingController();
 
    @override 
@@ -59,40 +65,52 @@ class TransferForm extends StatelessWidget {
             appBar: AppBar(
 					title: Text('Criando uma transferência')
             ),
-            body: Column(
-            	children: [
-						Field(
-							controller: _accountController,
-							label: 'Número da conta',
-							hint: '0000'
-						),
-                  Field(
-							controller: _valueController,
-							label: 'Valor',
-							hint: '0.00',
-							icon: Icons.monetization_on,
-						),
-                  RaisedButton(
-                        child: Text('Confirmar'),
-                        onPressed: () => _createTransfer(),
-                     )
-               ],
-            )
+            body: SingleChildScrollView(
+					child: Column(
+						children: [
+							Field(
+								controller: _accountController,
+								label: 'Número da conta',
+								hint: '0000'
+							),
+							Field(
+								controller: _valueController,
+								label: 'Valor',
+								hint: '0.00',
+								icon: Icons.monetization_on,
+							),
+							ElevatedButton(
+								child: Text('Confirmar'),
+								onPressed: () => _createTransfer(context),
+							)
+						],
+					),
+				)
+				
          );
    }
 
-	void _createTransfer() {
+	void _createTransfer(BuildContext context) {
 		final int _account = int.tryParse(_accountController.text);
 		final double _value = double.tryParse(_valueController.text);
 		if (_account != null && _value != null) {
 			final _transferCreated = Transfer(_value, _account);
+			Navigator.pop(context, _transferCreated);
 		}
-		print(_valueController.text);
 	}
 }
 
-class TransferList extends StatelessWidget {
-  
+class TransfersList extends StatefulWidget {
+	final List<Transfer> _transfers = [];
+
+	@override
+	State<StatefulWidget> createState() {
+		return TransfersListState();
+	}
+}
+
+class TransfersListState extends State<TransfersList> {
+
    @override
    Widget build(BuildContext context) {
       return 
@@ -100,15 +118,28 @@ class TransferList extends StatelessWidget {
             appBar: AppBar(
 					title: Text('Transferência'),
 				),
-            body: Column(
-					children: <Widget>[
-						TransferItem(Transfer(100.0, 1001)),
-						TransferItem(Transfer(150.0, 1002)),
-						TransferItem(Transfer(120.0, 1003)),
-					],
+            body: ListView.builder(
+					itemCount: widget._transfers.length,
+					itemBuilder: (context, index) {
+						return TransferItem(widget._transfers[index]);
+					},
 				),
             floatingActionButton: FloatingActionButton(
 					child: Icon(Icons.add),
+					onPressed: () {
+						final Future<Transfer> _transfer = Navigator.push(context, MaterialPageRoute(builder: (context) {
+							return TransferForm();
+						}));
+						_transfer.then((transfer) {
+							Future.delayed(Duration(seconds: 1), () {
+								setState(() {
+									if (transfer != null) {
+										widget._transfers.add(transfer);
+									}
+								});
+							});
+						});
+					},
 				),
          );
    }
